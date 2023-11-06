@@ -13,3 +13,13 @@ Timothy Wada @wadatimothy
 Aileen Mi @beepo34
 - NetID: mia1
 - Student ID: 15166075 
+
+## Configuration
+
+To install the dependencies for this project run the following command after ensuring pip is installed for the version of python you are using. Admin privileges might be required to execute the commands. Also make sure that the terminal is at the root folder of this project.
+
+```
+python -m pip install -r packages/requirements.txt
+```
+
+To set up the data files for this project unzip the contents of the `developer.zip` file from the Assignment 3: M1 Canvas assignment into the root folder of this project. 
