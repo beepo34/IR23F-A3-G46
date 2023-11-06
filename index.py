@@ -76,7 +76,6 @@ def build_index() -> None:
                             'id': re.sub('.json', '', file),
                             'tf': frequencies[word]
                         })
-                        print(f'word: {word} tf: {frequencies[word]}')
                 except Exception as e:
                     print(e)
     
