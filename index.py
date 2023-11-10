@@ -64,11 +64,33 @@ def build_index() -> None:
                     # TODO: ensure the parser can handle broken HTML (missing closing tags, etc.)
                     soup = BeautifulSoup(page['content'], 'html.parser')
                     phrase_list = list(soup.stripped_strings)
+
+                    # Add another for bold
+                    bold_list = soup.find_all("b")
+                    for i in bold_list:
+                        phrase_list.append(i.get_text())
+                    
+                    # Add two more for heading
+                    heading_list = soup.find_all(re.compile('^h[1-6]$'))
+                    for i in heading_list:
+                        heading = i.get_text()
+                        phrase_list += [heading, heading]
+                    
+                    # Add three for title
+                    title = soup.title.get_text()
+                    phrase_list += [title, title, title]
+
                     word_list = _tokenize(phrase_list)
                     frequencies = _tf(word_list)
 
                     # TODO: select important words: text in bold, in headings, 
                     # and in titles should be treated as more important
+                    # bold --> x2
+                    # headings --> x3
+                    # titles --> x4
+                    # bold words
+
+
 
                     for word in frequencies:
                         inverted_index[word].append({
