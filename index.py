@@ -3,6 +3,7 @@ import json
 import os
 from bs4 import BeautifulSoup
 from collections import defaultdict, Counter
+from nltk.stem import PorterStemmer
 
 dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -10,6 +11,7 @@ def _tokenize(phrase_list: list[str]) -> list[str]:
     '''
     Run time is O(n * m)
     '''
+    ps = PorterStemmer()
     wordList = []
     for phrase in phrase_list:
         phrase = phrase.strip()
@@ -17,8 +19,8 @@ def _tokenize(phrase_list: list[str]) -> list[str]:
         f = re.findall('[a-zA-Z0-9:\']+', phrase.lower())
         
         # TODO: implement stemming
+        wordList += [ps.stem(word) for word in f]
 
-        wordList += f
     return wordList
 
 
