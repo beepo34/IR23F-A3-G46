@@ -1,11 +1,22 @@
 import re
 import json
+import pickle
 import os
 from bs4 import BeautifulSoup
 from collections import defaultdict, Counter
 from nltk.stem import PorterStemmer
+import heapq
+import sys
 
 dir = os.path.dirname(os.path.abspath(__file__))
+
+class Posting(object):
+    def __init__(self, id: int, tf: int):
+        self.id = id
+        self.tf = tf
+    
+    def __lt__(self, other):
+        return self.id < other.id
 
 def _tokenize(phrase_list: list[str]) -> list[str]:
     '''
@@ -40,20 +51,11 @@ def _load_file(path) -> dict:
 def build_index() -> None:
     global dir
 
-    # inverted_index: {
-    #   token: [
-    #       {
-    #           subdomain: str,
-    #           id: str,
-    #           tf: int,
-    #           TODO: add more attributes
-    #       },
-    #   ],
-    # }
+    # inverted_index associates tokens with a list of postings
     inverted_index = defaultdict(list)
+    id_map = {}
+    id = 0
     for subdomain in os.listdir(os.path.join(dir, 'DEV')):
-        # TODO: when inverted_index exceeds a threshold size, offload to disk
-        
         for file in os.listdir(os.path.join(dir, 'DEV', subdomain)):
             # page: {
             #   'url': str, 
@@ -79,7 +81,8 @@ def build_index() -> None:
                         phrase_list += [heading, heading]
                     
                     # Add three for title
-                    title = soup.title.get_text()
+                    if soup.title:
+                        title = soup.title.get_text()
                     phrase_list += [title, title, title]
 
                     word_list = _tokenize(phrase_list)
@@ -95,20 +98,34 @@ def build_index() -> None:
 
 
                     for word in frequencies:
-                        inverted_index[word].append({
-                            'subdomain': subdomain,
-                            'id': re.sub('.json', '', file),
-                            'tf': frequencies[word]
-                        })
+                        heapq.heappush(inverted_index[word], Posting(id, frequencies[word]))
+
+                    id_map[id] = {
+                        'subdomain': subdomain,
+                        'file': file,
+                    }
+                    
+                    id += 1
                 except Exception as e:
                     print(e)
-    
-    with open(os.path.join(dir, 'indexes', 'index.json'), 'w+') as f:
-        json.dump(inverted_index, f)
+            
+            # when size of index exceeds 14 MB (~100 MB), offload index to disk
+            # memory = sys.getsizeof(inverted_index) / 1024**2
+            # if memory > 14:
+            #     with open(os.path.join(dir, 'indexes', f'index{id}.pkl'), 'wb+') as f:
+            #         for entry in sorted(inverted_index.items()):
+            #             pickle.dump(entry, f)
+            #     inverted_index = defaultdict(list)
+                
+    with open(os.path.join(dir, 'indexes', f'index{id}.pkl'), 'wb+') as f:
+        for item in sorted(inverted_index.items()):
+            pickle.dump(item, f)
+
+    with open(os.path.join(dir, 'id_map.json'), 'w+') as f:
+        json.dump(id_map, f)
 
 
-def merge_index():
-    # TODO: merge the partial indexes after they have finished being built
+def merge_index() -> None:
     pass
 
 
