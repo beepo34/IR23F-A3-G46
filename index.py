@@ -110,12 +110,12 @@ def build_index() -> None:
                     print(e)
             
             # when size of index exceeds 14 MB (~100 MB), offload index to disk
-            # memory = sys.getsizeof(inverted_index) / 1024**2
-            # if memory > 14:
-            #     with open(os.path.join(dir, 'indexes', f'index{id}.pkl'), 'wb+') as f:
-            #         for entry in sorted(inverted_index.items()):
-            #             pickle.dump(entry, f)
-            #     inverted_index = defaultdict(list)
+            memory = sys.getsizeof(inverted_index) / 1024**2
+            if memory > 14:
+                with open(os.path.join(dir, 'indexes', f'index{id}.pkl'), 'wb+') as f:
+                    for entry in sorted(inverted_index.items()):
+                        pickle.dump(entry, f)
+                inverted_index = defaultdict(list)
                 
     with open(os.path.join(dir, 'indexes', f'index{id}.pkl'), 'wb+') as f:
         for item in sorted(inverted_index.items()):
@@ -126,7 +126,71 @@ def build_index() -> None:
 
 
 def merge_index() -> None:
-    pass
+    # merge partial indexes
+    heap = []
+    for file in os.listdir(os.path.join(dir, 'indexes')):
+        if 'index' in file:
+            partial_index = open(os.path.join(dir, 'indexes', file), 'rb')
+            try:
+                word, postings =  pickle.load(partial_index)
+                heapq.heappush(heap, (word, postings, partial_index))
+            except EOFError:
+                partial_index.close()
+
+    if not heap:
+        return
+
+    index = open(os.path.join(dir, 'index.pkl'), 'wb+')
+    
+    word, postings, partial_index = heapq.heappop(heap)
+    cur = (word, postings)
+    try:
+        word, postings = pickle.load(partial_index)
+        heapq.heappush(heap, (word, postings, partial_index))
+    except EOFError:
+        partial_index.close()
+    except ValueError:
+        pass
+    
+    while heap:
+        word, postings, partial_index = heapq.heappop(heap)
+        if word == cur[0]:
+            cur_postings = cur[1]
+            if len(cur_postings) < len(postings):
+                while cur_postings:
+                    heapq.heappush(postings, heapq.heappop(cur_postings))
+                cur = (word, postings)
+            else:
+                while postings:
+                    heapq.heappush(cur_postings, heapq.heappop(postings))
+                cur = (word, cur_postings)
+            try:
+                word, postings = pickle.load(partial_index)
+                heapq.heappush(heap, (word, postings, partial_index))
+            except EOFError:
+                partial_index.close()
+            except ValueError:
+                pass
+        else:
+            pickle.dump(cur, index)
+            cur = (word, postings)
+            try:
+                word, postings = pickle.load(partial_index)
+                heapq.heappush(heap, (word, postings, partial_index))
+            except EOFError:
+                partial_index.close()
+            except ValueError:
+                pass
+    
+    pickle.dump(cur, index)
+    index.close()
+
+    # remove partial indexes
+    try:
+        for file in os.listdir(os.path.join(dir, 'indexes')):
+            os.remove(os.path.join(dir, 'indexes', file))
+    except OSError:
+        print("Error occurred while deleting files.")
 
 
 def main():
@@ -139,7 +203,7 @@ def main():
     if not os.path.exists(os.path.join(dir, 'indexes')):
         os.makedirs(os.path.join(dir, 'indexes'))
     
-    build_index()
+    # build_index()
     merge_index()
 
 
