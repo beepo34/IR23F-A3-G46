@@ -7,6 +7,7 @@ from collections import defaultdict, Counter
 from nltk.stem import PorterStemmer
 import heapq
 import sys
+import math
 
 dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -37,6 +38,29 @@ def _tokenize(phrase_list: list[str]) -> list[str]:
 
 def _tf(tokens: list[str]) -> list:
     return Counter(tokens)
+
+def _weight_tf(term: str, tf: list):
+    if tf[term] > 0:
+        return math.log(tf[term]) + 1
+    else:
+        return 0
+
+def _idf(term: str, doc_list: list[list[str]]):
+    df = 0
+    for doc in doc_list:
+        if term in doc:
+            df += 1
+    if df > 0:
+        return math.log(len(doc_list) / df)
+
+def _tfidf(term_list: list[str], doc: list[str], doc_list: list[list[str]]):
+    doc_score = 0
+    for term in term_list:
+        term_weight = _weight_tf(term, _tf(doc))
+        term_idf = _idf(term, doc_list)
+        term_tfidf = term_weight * term_idf
+        doc_score += term_tfidf
+    return doc_score
 
 
 def _load_file(path) -> dict:
