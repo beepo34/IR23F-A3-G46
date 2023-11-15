@@ -29,7 +29,7 @@ def _tokenize(phrase_list: list[str]) -> list[str]:
         # includes all alphanumeric in addition to colon and apostrophe
         f = re.findall('[a-zA-Z0-9:\']+', phrase.lower())
         
-        # TODO: implement stemming
+        # stem words
         wordList += [ps.stem(word) for word in f]
 
     return wordList
@@ -65,9 +65,10 @@ def build_index() -> None:
             page = _load_file(os.path.join(dir, 'DEV', subdomain, file))
             if page:
                 try:
-                    # TODO: ensure the parser can handle broken HTML (missing closing tags, etc.)
                     soup = BeautifulSoup(page['content'], 'html.parser')
                     phrase_list = list(soup.stripped_strings)
+
+                    # text in bold, in headings, and in titles should be treated as more important
 
                     # Add another for bold
                     bold_list = soup.find_all("b")
@@ -87,15 +88,6 @@ def build_index() -> None:
 
                     word_list = _tokenize(phrase_list)
                     frequencies = _tf(word_list)
-
-                    # TODO: select important words: text in bold, in headings, 
-                    # and in titles should be treated as more important
-                    # bold --> x2
-                    # headings --> x3
-                    # titles --> x4
-                    # bold words
-
-
 
                     for word in frequencies:
                         heapq.heappush(inverted_index[word], Posting(id, frequencies[word]))
@@ -130,6 +122,7 @@ def merge_index() -> None:
     heap = []
     for file in os.listdir(os.path.join(dir, 'indexes')):
         if 'index' in file:
+            # open read bufers from partial index files
             partial_index = open(os.path.join(dir, 'indexes', file), 'rb')
             try:
                 word, postings =  pickle.load(partial_index)
@@ -140,6 +133,7 @@ def merge_index() -> None:
     if not heap:
         return
 
+    # open write buffer to index file
     index = open(os.path.join(dir, 'index.pkl'), 'wb+')
     
     word, postings, partial_index = heapq.heappop(heap)
@@ -152,9 +146,12 @@ def merge_index() -> None:
     except ValueError:
         pass
     
+    # while partial indexes are not empty, load words into memory
+    # and merge postings of the same word
     while heap:
         word, postings, partial_index = heapq.heappop(heap)
         if word == cur[0]:
+            # merge postings and store in cur
             cur_postings = cur[1]
             if len(cur_postings) < len(postings):
                 while cur_postings:
@@ -164,6 +161,7 @@ def merge_index() -> None:
                 while postings:
                     heapq.heappush(cur_postings, heapq.heappop(postings))
                 cur = (word, cur_postings)
+            # load the next word from the partial index
             try:
                 word, postings = pickle.load(partial_index)
                 heapq.heappush(heap, (word, postings, partial_index))
@@ -172,8 +170,10 @@ def merge_index() -> None:
             except ValueError:
                 pass
         else:
+            # merging completed for current word, write to index and update cur
             pickle.dump(cur, index)
             cur = (word, postings)
+            # load the next word from the partial index
             try:
                 word, postings = pickle.load(partial_index)
                 heapq.heappush(heap, (word, postings, partial_index))
@@ -185,7 +185,7 @@ def merge_index() -> None:
     pickle.dump(cur, index)
     index.close()
 
-    # remove partial indexes
+    # remove partial index files
     try:
         for file in os.listdir(os.path.join(dir, 'indexes')):
             os.remove(os.path.join(dir, 'indexes', file))
@@ -203,7 +203,7 @@ def main():
     if not os.path.exists(os.path.join(dir, 'indexes')):
         os.makedirs(os.path.join(dir, 'indexes'))
     
-    # build_index()
+    build_index()
     merge_index()
 
 
