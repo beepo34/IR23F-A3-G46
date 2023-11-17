@@ -1,0 +1,17 @@
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="...">
+<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/styles.css') }}">
+
+<div id="search_home">
+    <div>
+        <img src="{{ url_for('static', filename='images/beepo.png') }}" alt="Beepo Logo" width="300">
+    </div>
+
+    <div>
+        <form action="{{url_for('search_query')}}" method="post" class="search-bar">
+            <input for="search" id="search" type="text" name="query" placeholder="Search Beepo">
+            <div>
+                <i class="fas fa-search"></i>
+              </div>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,9 @@
+<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/styles.css') }}">
+
+<div id="results">
+    <h1>{{ query}}</h1>
+
+    {% for res in results%}
+    <a href="{{ res }}">{{ res }}</a> <br />
+    {% endfor %}
+</div>
