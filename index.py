@@ -10,6 +10,7 @@ import sys
 import math
 
 dir = os.path.dirname(os.path.abspath(__file__))
+id_map = {}
 
 class Posting(object):
     def __init__(self, id: int, tf: int):
@@ -72,12 +73,11 @@ def _load_file(path) -> dict:
         return {}
 
 
-def build_index() -> None:
-    global dir
+def build_index() -> int:
+    global dir, id_map
 
     # inverted_index associates tokens with a list of postings
     inverted_index = defaultdict(list)
-    id_map = {}
     id = 0
     for subdomain in os.listdir(os.path.join(dir, 'DEV')):
         for file in os.listdir(os.path.join(dir, 'DEV', subdomain)):
@@ -119,6 +119,7 @@ def build_index() -> None:
                     id_map[id] = {
                         'subdomain': subdomain,
                         'file': file,
+                        'count': len(word_list),
                     }
                     
                     id += 1
@@ -140,8 +141,12 @@ def build_index() -> None:
     with open(os.path.join(dir, 'id_map.json'), 'w+') as f:
         json.dump(id_map, f)
 
+    return id
 
-def merge_index() -> None:
+
+def merge_index(n: int) -> None:
+    global id_map
+
     # merge partial indexes
     heap = []
     for file in os.listdir(os.path.join(dir, 'indexes')):
@@ -195,7 +200,12 @@ def merge_index() -> None:
                 pass
         else:
             # merging completed for current word, write to index and update cur
-            pickle.dump(cur, index)
+            # TODO: calculate tfidf, timmy pls help
+            cur_word, cur_postings = cur
+            # df = len(cur_postings)
+            # for posting in cur_postings:
+            #     posting.tfidf = (posting.tf / id_map[posting.id]['count']) * math.log(n / df)
+            pickle.dump((cur_word, cur_postings), index)
             cur = (word, postings)
             # load the next word from the partial index
             try:
@@ -227,8 +237,8 @@ def main():
     if not os.path.exists(os.path.join(dir, 'indexes')):
         os.makedirs(os.path.join(dir, 'indexes'))
     
-    build_index()
-    merge_index()
+    n = build_index()
+    merge_index(n)
 
 
 if __name__ == "__main__":
