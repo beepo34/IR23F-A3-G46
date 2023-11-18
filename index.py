@@ -8,6 +8,7 @@ from nltk.stem import PorterStemmer
 import heapq
 import sys
 import math
+import pandas as pd
 
 dir = os.path.dirname(os.path.abspath(__file__))
 id_map = {}
@@ -19,6 +20,8 @@ class Posting(object):
     
     def __lt__(self, other):
         return self.id < other.id
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.id == other.id
 
 def _tokenize(phrase_list: list[str]) -> list[str]:
     '''
@@ -218,7 +221,6 @@ def merge_index(n: int) -> None:
     except OSError:
         print("Error occurred while deleting files.")
 
-
 def main():
     global dir
 
@@ -231,6 +233,8 @@ def main():
 
     if not os.path.exists(os.path.join(dir, 'index')):
         os.makedirs(os.path.join(dir, 'index'))
+
+    print('Creating index...')
     
     n = build_index()
     merge_index(n)
