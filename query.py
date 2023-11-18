@@ -1,7 +1,7 @@
-def query(query: str):
+def boolean_query(query: str):
     # TODO: boolean retrieval, AND only
     terms = query.split()
-    
+
     return []
 
 
@@ -16,5 +16,5 @@ if __name__ == '__main__':
             print("Exiting the Search Engine. Goodbye!")
             break
 
-        results = query(user_input)
+        results = boolean_query(user_input)
         # TODO: show results
