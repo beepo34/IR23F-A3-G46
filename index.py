@@ -40,28 +40,15 @@ def _tokenize(phrase_list: list[str]) -> list[str]:
 def _tf(tokens: list[str]) -> list:
     return Counter(tokens)
 
-def _weight_tf(term: str, tf: list):
-    if tf[term] > 0:
-        return math.log(tf[term]) + 1
+
+def _tfidf(tf: int, n_docs: int, df: int):
+    if tf > 0:
+        term_weight = math.log(tf) + 1
+        term_idf = math.log(n_docs / df)
+        term_tfidf = term_weight * term_idf
+        return term_tfidf
     else:
         return 0
-
-def _idf(term: str, doc_list: list[list[str]]):
-    df = 0
-    for doc in doc_list:
-        if term in doc:
-            df += 1
-    if df > 0:
-        return math.log(len(doc_list) / df)
-
-def _tfidf(term_list: list[str], doc: list[str], doc_list: list[list[str]]):
-    doc_score = 0
-    for term in term_list:
-        term_weight = _weight_tf(term, _tf(doc))
-        term_idf = _idf(term, doc_list)
-        term_tfidf = term_weight * term_idf
-        doc_score += term_tfidf
-    return doc_score
 
 
 def _load_file(path) -> dict:
@@ -202,9 +189,9 @@ def merge_index(n: int) -> None:
             # merging completed for current word, write to index and update cur
             # TODO: calculate tfidf, timmy pls help
             cur_word, cur_postings = cur
-            # df = len(cur_postings)
-            # for posting in cur_postings:
-            #     posting.tfidf = (posting.tf / id_map[posting.id]['count']) * math.log(n / df)
+            for posting in cur_postings:
+                posting.tfidf = _tfidf(posting.tf, n, len(cur_postings))
+
             pickle.dump((cur_word, cur_postings), index)
             cur = (word, postings)
             # load the next word from the partial index
