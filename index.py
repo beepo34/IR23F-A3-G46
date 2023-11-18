@@ -162,6 +162,7 @@ def merge_index(n: int) -> None:
     except ValueError:
         pass
     
+    index_index = {}
     # while partial indexes are not empty, load words into memory
     # and merge postings of the same word
     while heap:
@@ -186,12 +187,12 @@ def merge_index(n: int) -> None:
             except ValueError:
                 pass
         else:
-            # merging completed for current word, write to index and update cur
-            # TODO: calculate tfidf, timmy pls help
+            # merging completed for current word, calculate tfidf, write to index and update cur
             cur_word, cur_postings = cur
             for posting in cur_postings:
                 posting.tfidf = _tfidf(posting.tf, n, len(cur_postings))
 
+            index_index[cur_word] = index.tell()
             pickle.dump((cur_word, cur_postings), index)
             cur = (word, postings)
             # load the next word from the partial index
@@ -205,6 +206,9 @@ def merge_index(n: int) -> None:
     
     pickle.dump(cur, index)
     index.close()
+
+    with open(os.path.join(dir, 'index_index.json'), 'w+') as f:
+        json.dump(index_index, f)
 
     # remove partial index files
     try:
