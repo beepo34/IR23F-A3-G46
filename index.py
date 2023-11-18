@@ -193,7 +193,7 @@ def merge_index(n: int) -> None:
                 posting.tfidf = _tfidf(posting.tf, n, len(cur_postings))
 
             index_index[cur_word] = index.tell()
-            pickle.dump((cur_word, cur_postings), index)
+            pickle.dump((cur_word, sorted(cur_postings, key=lambda x: (x.tfidf, x.tf), reverse=True)), index)
             cur = (word, postings)
             # load the next word from the partial index
             try:
