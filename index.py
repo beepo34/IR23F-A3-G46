@@ -116,16 +116,16 @@ def build_index() -> int:
             # when size of index exceeds 14 MB (~100 MB), offload index to disk
             memory = sys.getsizeof(inverted_index) / 1024**2
             if memory > 14:
-                with open(os.path.join(dir, 'indexes', f'index{id}.pkl'), 'wb+') as f:
+                with open(os.path.join(dir, 'partial_indexes', f'index{id}.pkl'), 'wb+') as f:
                     for entry in sorted(inverted_index.items()):
                         pickle.dump(entry, f)
                 inverted_index = defaultdict(list)
                 
-    with open(os.path.join(dir, 'indexes', f'index{id}.pkl'), 'wb+') as f:
+    with open(os.path.join(dir, 'partial_indexes', f'index{id}.pkl'), 'wb+') as f:
         for item in sorted(inverted_index.items()):
             pickle.dump(item, f)
 
-    with open(os.path.join(dir, 'id_map.json'), 'w+') as f:
+    with open(os.path.join(dir, 'index', 'id_map.json'), 'w+') as f:
         json.dump(id_map, f)
 
     return id
@@ -136,10 +136,10 @@ def merge_index(n: int) -> None:
 
     # merge partial indexes
     heap = []
-    for file in os.listdir(os.path.join(dir, 'indexes')):
+    for file in os.listdir(os.path.join(dir, 'partial_indexes')):
         if 'index' in file:
             # open read bufers from partial index files
-            partial_index = open(os.path.join(dir, 'indexes', file), 'rb')
+            partial_index = open(os.path.join(dir, 'partial_indexes', file), 'rb')
             try:
                 word, postings =  pickle.load(partial_index)
                 heapq.heappush(heap, (word, postings, partial_index))
@@ -150,7 +150,7 @@ def merge_index(n: int) -> None:
         return
 
     # open write buffer to index file
-    index = open(os.path.join(dir, 'index.pkl'), 'wb+')
+    index = open(os.path.join(dir, 'index', 'index.pkl'), 'wb+')
     
     word, postings, partial_index = heapq.heappop(heap)
     cur = (word, postings)
@@ -207,13 +207,14 @@ def merge_index(n: int) -> None:
     pickle.dump(cur, index)
     index.close()
 
-    with open(os.path.join(dir, 'index_index.json'), 'w+') as f:
+    with open(os.path.join(dir, 'index', 'index_index.json'), 'w+') as f:
         json.dump(index_index, f)
 
-    # remove partial index files
+    # remove partial index files and partial_indexes directory
     try:
-        for file in os.listdir(os.path.join(dir, 'indexes')):
-            os.remove(os.path.join(dir, 'indexes', file))
+        for file in os.listdir(os.path.join(dir, 'partial_indexes')):
+            os.remove(os.path.join(dir, 'partial_indexes', file))
+        os.rmdir(os.path.join(dir, 'partial_indexes'))
     except OSError:
         print("Error occurred while deleting files.")
 
@@ -225,8 +226,11 @@ def main():
         print('DEV folder does not exist, make sure you have unzipped developer.zip into the root folder.')
         return
     
-    if not os.path.exists(os.path.join(dir, 'indexes')):
-        os.makedirs(os.path.join(dir, 'indexes'))
+    if not os.path.exists(os.path.join(dir, 'partial_indexes')):
+        os.makedirs(os.path.join(dir, 'partial_indexes'))
+
+    if not os.path.exists(os.path.join(dir, 'index')):
+        os.makedirs(os.path.join(dir, 'index'))
     
     n = build_index()
     merge_index(n)
