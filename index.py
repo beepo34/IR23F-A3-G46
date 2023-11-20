@@ -109,6 +109,7 @@ def build_index() -> int:
                     id_map[id] = {
                         'subdomain': subdomain,
                         'file': file,
+                        'url': page['url'],
                         'count': len(word_list),
                     }
                     
