@@ -20,6 +20,7 @@ class Posting(object):
     
     def __lt__(self, other):
         return self.id < other.id
+    
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.id == other.id
 
@@ -41,17 +42,18 @@ def _tokenize(phrase_list: list[str]) -> list[str]:
 
 
 def _tf(tokens: list[str]) -> list:
-    return Counter(tokens)
+    frequencies = Counter(tokens)
+    for term in frequencies:
+        frequencies[term] = math.log(frequencies[term]) + 1
+    return frequencies
 
 
-def _tfidf(tf: int, n_docs: int, df: int):
-    if tf > 0:
-        term_weight = math.log(tf) + 1
-        term_idf = math.log(n_docs / df)
-        term_tfidf = term_weight * term_idf
-        return term_tfidf
-    else:
-        return 0
+def _idf(n_docs: int, df: int):
+    return math.log(n_docs / df)
+
+
+def _tfidf(tf: float, idf: float):
+    return tf * idf
 
 
 def _load_file(path) -> dict:
@@ -100,17 +102,20 @@ def build_index() -> int:
                         title = soup.title.get_text()
                     phrase_list += [title, title, title]
 
-                    word_list = _tokenize(phrase_list)
-                    frequencies = _tf(word_list)
+                    terms = _tokenize(phrase_list)
+                    tf_weights = _tf(terms)
 
-                    for word in frequencies:
-                        heapq.heappush(inverted_index[word], Posting(id, frequencies[word]))
+                    length = 0
+                    for term in tf_weights:
+                        term_tf = tf_weights[term]
+                        length += math.pow(term_tf, 2)
+                        heapq.heappush(inverted_index[term], Posting(id, term_tf))
 
                     id_map[id] = {
                         'subdomain': subdomain,
                         'file': file,
                         'url': page['url'],
-                        'count': len(word_list),
+                        'length': math.sqrt(length)
                     }
                     
                     id += 1
@@ -194,7 +199,7 @@ def merge_index(n: int) -> None:
             # merging completed for current word, calculate tfidf, write to index and update cur
             cur_word, cur_postings = cur
             for posting in cur_postings:
-                posting.tfidf = _tfidf(posting.tf, n, len(cur_postings))
+                posting.tfidf = _tfidf(posting.tf, _idf(n, len(cur_postings)))
 
             index_index[cur_word] = index.tell()
             pickle.dump((cur_word, sorted(cur_postings, key=lambda x: (x.tfidf, x.tf), reverse=True)), index)
