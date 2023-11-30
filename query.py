@@ -3,6 +3,7 @@ import pickle
 import os
 import json
 import math
+import re
 from collections import defaultdict, Counter
 from index import _tf, Posting
 from nltk.stem import PorterStemmer
@@ -13,7 +14,9 @@ dir = os.path.dirname(os.path.abspath(__file__))
 def _ranked_search(query: str, index_index, id_map):
     # return top documents relating to the query using lnc.ltc weighted cosine similarity
     ps = PorterStemmer()
-    query = [ps.stem(word.lower()) for word in query.split()]
+    query = re.findall('[a-zA-Z0-9:\']+', query.lower())
+    query = [ps.stem(word) for word in query]
+
     frequencies = _tf(query)
     length = 0
 
