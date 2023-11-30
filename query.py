@@ -22,16 +22,35 @@ def _ranked_search(query: str, index_index, id_map):
 
     scores = defaultdict(float)
     with open(os.path.join(dir, 'index', 'index.pkl'), 'rb') as index:
+        terms = []
         for term, query_tf in frequencies.items():
             index.seek(index_index[term])
             _, postings = pickle.load(index)
 
-            query_wt = query_tf * postings[0].tfidf / postings[0].tf
+            term_idf = postings[0].tfidf / postings[0].tf
+            query_wt = query_tf * term_idf
+            terms.append(
+                {
+                    'term': term,
+                    'idf': term_idf, 
+                    'query_wt': query_wt,
+                    'postings': postings
+                }
+            )
+
             length += math.pow(query_wt, 2)
 
-            for posting in postings:
+        # implement early stopping for low query term idf/low posting tf values
+        for term_dict in sorted(terms, key=lambda x: x['idf'], reverse = True):
+            if term_dict['idf'] < 1:
+                break
+            count = 0
+            for posting in term_dict['postings']:
                 doc_wt = posting.tf
-                scores[posting.id] += query_wt * doc_wt
+                if count > 1000 and doc_wt < 2.0:
+                    break
+                scores[posting.id] += term_dict['query_wt'] * doc_wt
+                count += 1
     
     query_length = math.sqrt(length)
 
