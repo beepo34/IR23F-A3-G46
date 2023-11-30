@@ -1,7 +1,7 @@
 from flask import Flask, request, render_template
 import os
 import json
-from query import _boolean_search
+from query import _ranked_search
 from index import main, Posting
 
 app = Flask(__name__, static_url_path='/static')
@@ -22,7 +22,7 @@ def search_query():
     
     if request.method == "POST":
         query = request.form.get("query")
-        results_from_query = _boolean_search(query, index_index, id_map)
+        results_from_query = _ranked_search(query, index_index, id_map)
         
         return render_template("results.html", query=query, results=results_from_query)
     else:
