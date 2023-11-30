@@ -23,3 +23,9 @@ python -m pip install -r packages/requirements.txt
 ```
 
 To set up the data files for this project unzip the contents of the `developer.zip` file from the Assignment 3: M1 Canvas assignment into the root folder of this project. 
+
+## Launch
+To launch the application, run
+```
+python main.py
+```
