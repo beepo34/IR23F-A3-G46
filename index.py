@@ -64,6 +64,29 @@ def _load_file(path) -> dict:
         print(e)
         return {}
 
+def _has_high_textual_content(content) -> bool:
+    ''' determines if a page has high textual information content based on the number of paragraphs and number of words '''
+    soup = BeautifulSoup(content, 'html.parser')
+    # exclude text in footer and menu elements to count
+    elements_to_exclude = ['footer', 'nav']
+
+    # Find and remove elements to ignore
+    for tag in elements_to_exclude:
+        for element in soup.find_all(tag):
+            element.extract()
+
+    # count the number of <p> tags
+    p_tag_count = len(soup.find_all('p'))
+
+    # get the number of alphanumeric words
+    num_words = len(
+        [word for word in soup.get_text().split() if word.isalnum()])
+
+    if p_tag_count <= 1 and num_words < 200:
+        # classify as not valid because there is not enough textual information
+        return False
+    else:
+        return True
 
 def build_index() -> int:
     global dir, id_map
@@ -83,6 +106,10 @@ def build_index() -> int:
                 try:
                     soup = BeautifulSoup(page['content'], 'html.parser')
                     phrase_list = list(soup.stripped_strings)
+
+                    # if page does not have high textual content, do not add it to the index
+                    if not _has_high_textual_content(page['content']):
+                        continue # skip to next file
 
                     # text in bold, in headings, and in titles should be treated as more important
 
@@ -110,7 +137,7 @@ def build_index() -> int:
                         term_tf = tf_weights[term]
                         length += math.pow(term_tf, 2)
                         heapq.heappush(inverted_index[term], Posting(id, term_tf))
-
+                    
                     id_map[id] = {
                         'subdomain': subdomain,
                         'file': file,
