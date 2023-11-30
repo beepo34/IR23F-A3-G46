@@ -1,10 +1,19 @@
 <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/styles.css') }}">
 
 <div id="results">
-    <h1>{{ query }}</h1>
-    <p id="search-stats">{{ num_results }} results ({{ search_time }} ms): Showing {{ K }}</p>
+    <div>
+        <form action="{{url_for('search_query')}}" method="post" class="search-bar">
+            <input for="search" id="search" type="text" name="query" value="{{ query }}">
+            <div>
+                <i class="fas fa-search"></i>
+            </div>
+        </form>
+    </div>
+    <div id="search-results">
+        <p id="search-stats">{{ num_results }} results ({{ search_time }} ms): Showing {{ K }}</p>
 
-    {% for res in first_k_results%}
-    <a href="{{ res }}">{{ res }}</a> <br />
-    {% endfor %}
+        {% for res in first_k_results%}
+        <a href="{{ res }}">{{ res }}</a> <br /> <br />
+        {% endfor %}
+    </div>
 </div>
