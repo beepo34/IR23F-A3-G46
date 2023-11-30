@@ -3,7 +3,7 @@
     --grey: #D3D3D3;
 }
 
-h1, a {
+h1, a, p {
     font-family: 'Roboto', sans-serif;
   }
   
@@ -51,4 +51,15 @@ i{
     height: 100%;
     width: 100%;
     padding: 10px 50px;
+}
+
+#results h1{
+    margin: 0;
+    padding: 0;
+    padding-top: 5px;
+}
+
+#search-stats{
+    color: grey;
+    padding: 0;
 }

@@ -1,9 +1,10 @@
 <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/styles.css') }}">
 
 <div id="results">
-    <h1>{{ query}}</h1>
+    <h1>{{ query }}</h1>
+    <p id="search-stats">{{ num_results }} results ({{ search_time }} ms): Showing {{ K }}</p>
 
-    {% for res in results%}
+    {% for res in first_k_results%}
     <a href="{{ res }}">{{ res }}</a> <br />
     {% endfor %}
 </div>
