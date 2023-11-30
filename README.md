@@ -24,8 +24,27 @@ python -m pip install -r packages/requirements.txt
 
 To set up the data files for this project unzip the contents of the `developer.zip` file from the Assignment 3: M1 Canvas assignment into the root folder of this project. 
 
-## Launch
-To launch the application, run
+## Building the Index
+
+To start the code to build the inverted index, run the following command.
+
+```
+python3 index.py
+```
+
+## Starting the Search Engine Using the Console
+
+To start the search engine on a console interface, run the following command.
+
+```
+python3 query.py
+```
+
+The console will repeatedly prompt the user to enter a query. Enter `exit` to quit the engine.
+
+## Starting the Search Engine Using the GUI Interface
+To launch the the search engine application with GUI interface, run the following command.
+
 ```
 python main.py
 ```
