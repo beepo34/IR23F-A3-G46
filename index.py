@@ -118,6 +118,8 @@ def build_index() -> int:
                     content_hash = _hash_content(page['content'])
                     if content_hash in page_contents:
                         continue # skip to next file
+                    else:
+                        page_contents.add(content_hash)
 
                     # if page does not have high textual content, do not add it to the index
                     if not _has_high_textual_content(page['content']):
