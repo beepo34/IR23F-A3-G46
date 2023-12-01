@@ -14,6 +14,10 @@ dir = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(dir, 'index', 'index_index.json')) as f:
     index_index = json.load(f)
 
+# load index_index
+with open(os.path.join(dir, 'index', 'idf_index.json')) as f:
+    idf_index = json.load(f)
+
 # load id_map
 with open(os.path.join(dir, 'index', 'id_map.json')) as f:
     id_map = json.load(f)
@@ -27,7 +31,7 @@ def search_query():
             K = 15
             start_time = time.time_ns()
             query = request.form.get("query")
-            results_from_query = _ranked_search(query, index_index, id_map)
+            results_from_query = _ranked_search(query, index_index, idf_index, id_map)
             end_time = time.time_ns()
             first_k_results = results_from_query[:K]
             search_time = (end_time - start_time) / 10**6
