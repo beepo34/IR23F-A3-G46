@@ -1,50 +1,66 @@
 20 queries
 Note: queries with no comments mean that we believed they performed well without the need for optimizations.
 
+**Poor Queries**
 1. the ics community vs ics community
 - the addition of the word "the" created a difference in results and computation time
 - remove stop words if they don't matter significantly to the meaning of the query
+
 2. acm
 - one word query: could be faster
 - sorted postings by descending score to optimize one word queries
+
 3. machine learning
 - contained pages with low textual content at the top of the results
 - filtered out short pages or pages with low textual content
-4. cristina lopes
-5. master of software engineering vs software engineering master
+
+4. master of software engineering vs software engineering master
 - stop words created an effect on the results and query computation time
 - remove stop words if they don't matter significantly to the meaning of the query
-6. courses that the stats department offers
+
+5. courses that the stats department offers
 - relatively long query that includes some stop words, query took >300ms
 - set a threshold for document score to perform calculations on only relevant documents
-7. undergraduate requirements for computer science majors
+
+6. undergraduate requirements for computer science majors
 - long query, query took >300ms
 - set a threshold for document score to perform calculations on only relevant documents
-8. krone martins
-9. cs 121
+
+7. cs 121
 - query includes numbers, pages with other course codes started showing up
 - implement n-grams to maintain order of tokens
-10. cs 121 professors
+
+8. cs 121 professors
 - query includes numbers, pages with other course codes started showing up
 - implement n-grams to maintain order of tokens
-11. information retrieval
+
+9. information retrieval
 - contained pages with low textual content/unrelated pages at the top of the results
 - filtered out short pages or pages with low textual content, implement n-grams to maintain order of tokens
-12. Advanced Programming and Problem Solving with C++
+
+10. Advanced Programming and Problem Solving with C++
 - query contains non-alphanumeric characters, would throw an error
 - tokenize the query and handle errors in the query
-13. Artificial Intelligence Frontiers: Technical, Ethical, and Societal
+
+11. Artificial Intelligence Frontiers: Technical, Ethical, and Societal
 - query contains non-alphanumeric characters, would throw an error
 - tokenize the query and handle errors in the query
-14. research vs researchers
+
+12. research vs researchers
 - stemming made these two queries return the same results
-15. ICS academic advising
-16. ICS student council
-17. statistics faculty
+
+13. statistics faculty
 - contained pages with low textual content at the top of the results
 - filtered out short pages or pages with low textual content
-18. data science as a major
+
+14. data science as a major
 - contained pages with low textual content at the top of the results
 - filtered out short pages or pages with low textual content
+
+**Other test queries**
+15. cristina lopes
+16. krone martins
+17. ICS academic advising
+18. ICS student council
 19. Why should I take informatics 141?
 20. What is the best minor for a Computer Science major?
