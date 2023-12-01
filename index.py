@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 from collections import defaultdict, Counter
 from nltk.stem import PorterStemmer
 from nltk.util import bigrams, ngrams
+from urllib.parse import urlparse, urlunparse, urljoin
 import heapq
 import sys
 import math
@@ -92,6 +93,13 @@ def _has_high_textual_content(content) -> bool:
         return False
     else:
         return True
+    
+def _defragmented_url(url: str) -> str:
+    '''Given a url, return the url without its fragments'''
+    parsed_url = urlparse(url)
+
+    defragmented_url = urlunparse(parsed_url._replace(fragment=''))
+    return defragmented_url
 
 def build_index() -> int:
     global dir, id_map
@@ -99,6 +107,7 @@ def build_index() -> int:
     # inverted_index associates tokens with a list of postings
     inverted_index = defaultdict(list)
     page_contents = set()
+    unique_pages = set()
     id = 0
     for subdomain in os.listdir(os.path.join(dir, 'DEV')):
         for file in os.listdir(os.path.join(dir, 'DEV', subdomain)):
@@ -113,6 +122,14 @@ def build_index() -> int:
                     soup = BeautifulSoup(page['content'], 'html.parser')
                     phrase_list = list(soup.stripped_strings)
 
+                    # keep track of page urls to check for duplicate pages
+                    # if duplicate page, do not add it to the index
+                    url_hash = _hash_content(_defragmented_url(page['url']))
+                    if url_hash in unique_pages:
+                        continue
+                    else:
+                        unique_pages.add(url_hash)
+
                     # hash content to check for duplicate pages
                     # if duplicate page, do not add it to the index
                     content_hash = _hash_content(page['content'])
@@ -126,7 +143,6 @@ def build_index() -> int:
                         continue # skip to next file
 
                     # text in bold, in headings, and in titles should be treated as more important
-
                     # Add another for bold
                     bold_list = soup.find_all("b")
                     for i in bold_list:
