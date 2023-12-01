@@ -5,6 +5,7 @@ import os
 from bs4 import BeautifulSoup
 from collections import defaultdict, Counter
 from nltk.stem import PorterStemmer
+from nltk.util import bigrams, ngrams
 import heapq
 import sys
 import math
@@ -143,12 +144,29 @@ def build_index() -> int:
                     terms = _tokenize(phrase_list)
                     tf_weights = _tf(terms)
 
+                    two_gram_terms = bigrams(terms)
+                    two_gram_weights = _tf(two_gram_terms)
+
+                    three_gram_terms = ngrams(terms, 3)
+                    three_gram_weights = _tf(three_gram_terms)
+
                     length = 0
                     for term in tf_weights:
                         term_tf = tf_weights[term]
                         length += math.pow(term_tf, 2)
                         heapq.heappush(inverted_index[term], Posting(id, term_tf))
-                    
+
+                    # 2 term implementation
+                    for two_term in two_gram_weights:
+                        two_gram_tf = two_gram_weights[two_term]
+                        heapq.heappush(inverted_index[two_term], Posting(id, two_gram_tf))
+
+                    # 3 term implementation
+                    for three_term in three_gram_weights:
+                        three_gram_tf = three_gram_weights[three_term]
+                        heapq.heappush(inverted_index[three_term], Posting(id, three_gram_tf))
+
+
                     id_map[id] = {
                         'subdomain': subdomain,
                         'file': file,
