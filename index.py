@@ -134,6 +134,7 @@ def build_index() -> int:
                     # if duplicate page, do not add it to the index
                     url_hash = _hash_content(_defragmented_url(page['url']))
                     if url_hash in unique_pages:
+                        print(f'Duplicate page: {page["url"]}')
                         continue
                     else:
                         unique_pages.add(url_hash)
@@ -193,7 +194,7 @@ def build_index() -> int:
                     id_map[id] = {
                         'subdomain': subdomain,
                         'file': file,
-                        'url': page['url'],
+                        'url': _defragmented_url(page['url']),
                         'length': math.sqrt(length)
                     }
 
