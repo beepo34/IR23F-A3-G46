@@ -8,6 +8,7 @@ from nltk.stem import PorterStemmer
 import heapq
 import sys
 import math
+import hashlib
 import pandas as pd
 
 dir = os.path.dirname(os.path.abspath(__file__))
@@ -23,6 +24,9 @@ class Posting(object):
     
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.id == other.id
+
+def _hash_content(content: str) -> str:
+    return hashlib.sha256(content.encode('utf-8')).hexdigest()
 
 def _tokenize(phrase_list: list[str]) -> list[str]:
     '''
@@ -93,6 +97,7 @@ def build_index() -> int:
 
     # inverted_index associates tokens with a list of postings
     inverted_index = defaultdict(list)
+    page_contents = set()
     id = 0
     for subdomain in os.listdir(os.path.join(dir, 'DEV')):
         for file in os.listdir(os.path.join(dir, 'DEV', subdomain)):
@@ -106,6 +111,12 @@ def build_index() -> int:
                 try:
                     soup = BeautifulSoup(page['content'], 'html.parser')
                     phrase_list = list(soup.stripped_strings)
+
+                    # hash content to check for duplicate pages
+                    # if duplicate page, do not add it to the index
+                    content_hash = _hash_content(page['content'])
+                    if content_hash in page_contents:
+                        continue # skip to next file
 
                     # if page does not have high textual content, do not add it to the index
                     if not _has_high_textual_content(page['content']):
