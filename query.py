@@ -5,49 +5,52 @@ import json
 import math
 import re
 from collections import defaultdict, Counter
-from index import _tf, Posting
+from index import _tf, _tokenize, Posting
 from nltk.stem import PorterStemmer
+from nltk.util import bigrams, ngrams
 import heapq
 
 dir = os.path.dirname(os.path.abspath(__file__))
 
-def _ranked_search(query: str, index_index, id_map):
+def _ranked_search(query: str, index_index, idf_index, id_map):
     # return top documents relating to the query using lnc.ltc weighted cosine similarity
-    ps = PorterStemmer()
-    query = re.findall('[a-zA-Z0-9:\']+', query.lower())
-    query = [ps.stem(word) for word in query]
-
-    frequencies = _tf(query)
+    query_terms = _tokenize(query.split())
+    two_gram_terms = [' '.join(two_term) for two_term in bigrams(query_terms)]
+    three_gram_terms = [' '.join(three_term) for three_term in ngrams(query_terms, 3)]
+    query_tf_weights = _tf(query_terms + two_gram_terms + three_gram_terms)
     length = 0
 
     scores = defaultdict(float)
     with open(os.path.join(dir, 'index', 'index.pkl'), 'rb') as index:
         terms = []
-        for term, query_tf in frequencies.items():
-            index.seek(index_index[term])
-            _, postings = pickle.load(index)
+        for term, query_tf in query_tf_weights.items():
+            try:
+                term_idf = idf_index[term]
+                query_wt = query_tf * term_idf
+                terms.append(
+                    {
+                        'term': term,
+                        'idf': term_idf, 
+                        'query_wt': query_wt
+                    }
+                )
 
-            term_idf = postings[0].tfidf / postings[0].tf
-            query_wt = query_tf * term_idf
-            terms.append(
-                {
-                    'term': term,
-                    'idf': term_idf, 
-                    'query_wt': query_wt,
-                    'postings': postings
-                }
-            )
-
-            length += math.pow(query_wt, 2)
+                length += math.pow(query_wt, 2)
+            except KeyError:
+                pass
 
         # implement early stopping for low query term idf/low posting tf values
         for term_dict in sorted(terms, key=lambda x: x['idf'], reverse = True):
             if term_dict['idf'] < 1:
                 break
+
+            index.seek(index_index[term_dict['term']])
+            _, postings = pickle.load(index)
+
             count = 0
-            for posting in term_dict['postings']:
+            for posting in postings:
                 doc_wt = posting.tf
-                if count > 1000 and doc_wt < 2.0:
+                if count > 2500 and doc_wt < 2.0:
                     break
                 scores[posting.id] += term_dict['query_wt'] * doc_wt
                 count += 1
@@ -124,9 +127,15 @@ if __name__ == '__main__':
     with open(os.path.join(dir, 'index', 'index_index.json')) as f:
         index_index = json.load(f)
 
+    # load index_index
+    with open(os.path.join(dir, 'index', 'idf_index.json')) as f:
+        idf_index = json.load(f)
+
     # load id_map
     with open(os.path.join(dir, 'index', 'id_map.json')) as f:
         id_map = json.load(f)
+
+    
 
     while True:
         user_input = input("Enter a query (or 'exit' to quit): ")
@@ -136,7 +145,7 @@ if __name__ == '__main__':
             print("Exiting the Search Engine. Goodbye!")
             break
         
-        results = _ranked_search(user_input, index_index, id_map)
+        results = _ranked_search(user_input, index_index, idf_index, id_map)
         end_time = time.time_ns()
         print(f'{len(results)} results ({(end_time - start_time) / 10**6} ms): Showing 15')
         for result in results[:15]:
