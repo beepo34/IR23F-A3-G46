@@ -4,6 +4,9 @@ import pickle
 import os
 from bs4 import BeautifulSoup
 from collections import defaultdict, Counter
+import nltk
+nltk.download('words')
+from nltk.corpus import words
 from nltk.stem import PorterStemmer
 from nltk.util import bigrams, ngrams
 import heapq
@@ -14,6 +17,7 @@ import pandas as pd
 
 dir = os.path.dirname(os.path.abspath(__file__))
 id_map = {}
+real_words = {word.lower() for word in words.words()}
 
 class Posting(object):
     def __init__(self, id: int, tf: int):
@@ -30,18 +34,20 @@ def _hash_content(content: str) -> str:
     return hashlib.sha256(content.encode('utf-8')).hexdigest()
 
 def _tokenize(phrase_list: list[str]) -> list[str]:
-    '''
-    Run time is O(n * m)
-    '''
+    global real_words
+
     ps = PorterStemmer()
     wordList = []
     for phrase in phrase_list:
         phrase = phrase.strip()
-        # includes all alphanumeric in addition to colon and apostrophe
-        f = re.findall('[a-zA-Z0-9:\']+', phrase.lower())
+        # maintain contractions as singular tokens
+        phrase = re.sub('\'', '', phrase.strip())
+
+        # includes all alphanumeric
+        f = re.findall('[a-zA-Z0-9]+', phrase.lower())
         
-        # stem words
-        wordList += [ps.stem(word) for word in f]
+        # stem words and add to word list if word is recognized
+        wordList += [ps.stem(word) for word in f if word in real_words or word.isnumeric()]
 
     return wordList
 
@@ -70,7 +76,9 @@ def _load_file(path) -> dict:
         return {}
 
 def _has_high_textual_content(content) -> bool:
-    ''' determines if a page has high textual information content based on the number of paragraphs and number of words '''
+    '''
+    determines if a page has high textual information content based on the number of paragraphs and number of words
+    '''
     soup = BeautifulSoup(content, 'html.parser')
     # exclude text in footer and menu elements to count
     elements_to_exclude = ['footer', 'nav']
@@ -87,7 +95,7 @@ def _has_high_textual_content(content) -> bool:
     num_words = len(
         [word for word in soup.get_text().split() if word.isalnum()])
 
-    if p_tag_count <= 1 and num_words < 200:
+    if p_tag_count <= 1 or num_words < 100:
         # classify as not valid because there is not enough textual information
         return False
     else:
@@ -146,27 +154,24 @@ def build_index() -> int:
                     terms = _tokenize(phrase_list)
                     tf_weights = _tf(terms)
 
-                    two_gram_terms = bigrams(terms)
+                    two_gram_terms = [' '.join(two_term) for two_term in bigrams(terms)]
                     two_gram_weights = _tf(two_gram_terms)
 
-                    three_gram_terms = ngrams(terms, 3)
+                    three_gram_terms = [' '.join(three_term) for three_term in ngrams(terms, 3)]
                     three_gram_weights = _tf(three_gram_terms)
 
                     length = 0
-                    for term in tf_weights:
-                        term_tf = tf_weights[term]
+                    for term, term_tf in tf_weights.items():
                         length += math.pow(term_tf, 2)
                         heapq.heappush(inverted_index[term], Posting(id, term_tf))
 
-                    # 2 term implementation
-                    for two_term in two_gram_weights:
-                        two_gram_tf = two_gram_weights[two_term]
-                        heapq.heappush(inverted_index[two_term], Posting(id, two_gram_tf))
+                    # 2-gram implementation
+                    for two_gram, two_gram_tf in two_gram_weights.items():
+                        heapq.heappush(inverted_index[two_gram], Posting(id, two_gram_tf))
 
-                    # 3 term implementation
-                    for three_term in three_gram_weights:
-                        three_gram_tf = three_gram_weights[three_term]
-                        heapq.heappush(inverted_index[three_term], Posting(id, three_gram_tf))
+                    # 3-gram implementation
+                    for three_gram, three_gram_tf in three_gram_weights.items():
+                        heapq.heappush(inverted_index[three_gram], Posting(id, three_gram_tf))
 
 
                     id_map[id] = {
@@ -175,6 +180,8 @@ def build_index() -> int:
                         'url': page['url'],
                         'length': math.sqrt(length)
                     }
+
+                    print(f'{id}: {math.sqrt(length)}')
                     
                     id += 1
                 except Exception as e:
@@ -230,6 +237,7 @@ def merge_index(n: int) -> None:
         pass
     
     index_index = {}
+    idf_index = {}
     # while partial indexes are not empty, load words into memory
     # and merge postings of the same word
     while heap:
@@ -256,11 +264,13 @@ def merge_index(n: int) -> None:
         else:
             # merging completed for current word, calculate tfidf, write to index and update cur
             cur_word, cur_postings = cur
+            term_idf = _idf(n, len(cur_postings))
             for posting in cur_postings:
-                posting.tfidf = _tfidf(posting.tf, _idf(n, len(cur_postings)))
+                posting.tfidf = _tfidf(posting.tf, term_idf)
 
             index_index[cur_word] = index.tell()
-            pickle.dump((cur_word, sorted(cur_postings, key=lambda x: (x.tfidf, x.tf), reverse=True)), index)
+            idf_index[cur_word] = term_idf
+            pickle.dump((cur_word, sorted(cur_postings, key=lambda x: (x.tfidf, x.tf, -x.id), reverse=True)), index)
             cur = (word, postings)
             # load the next word from the partial index
             try:
@@ -276,6 +286,9 @@ def merge_index(n: int) -> None:
 
     with open(os.path.join(dir, 'index', 'index_index.json'), 'w+') as f:
         json.dump(index_index, f)
+
+    with open(os.path.join(dir, 'index', 'idf_index.json'), 'w+') as f:
+        json.dump(idf_index, f)
 
     # remove partial index files and partial_indexes directory
     try:
