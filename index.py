@@ -4,9 +4,6 @@ import pickle
 import os
 from bs4 import BeautifulSoup
 from collections import defaultdict, Counter
-import nltk
-nltk.download('words')
-from nltk.corpus import words
 from nltk.stem import PorterStemmer
 from nltk.util import bigrams, ngrams
 from urllib.parse import urlparse, urlunparse, urljoin
@@ -18,7 +15,6 @@ import pandas as pd
 
 dir = os.path.dirname(os.path.abspath(__file__))
 id_map = {}
-real_words = {word.lower() for word in words.words()}
 
 class Posting(object):
     def __init__(self, id: int, tf: int):
@@ -35,8 +31,6 @@ def _hash_content(content: str) -> str:
     return hashlib.sha256(content.encode('utf-8')).hexdigest()
 
 def _tokenize(phrase_list: list[str]) -> list[str]:
-    global real_words
-
     ps = PorterStemmer()
     wordList = []
     for phrase in phrase_list:
@@ -48,7 +42,7 @@ def _tokenize(phrase_list: list[str]) -> list[str]:
         f = re.findall('[a-zA-Z0-9]+', phrase.lower())
         
         # stem words and add to word list if word is recognized
-        wordList += [ps.stem(word) for word in f if word in real_words or word.isnumeric()]
+        wordList += [ps.stem(word) for word in f]
 
     return wordList
 
@@ -197,8 +191,6 @@ def build_index() -> int:
                         'url': _defragmented_url(page['url']),
                         'length': math.sqrt(length)
                     }
-
-                    print(f'{id}: {math.sqrt(length)}')
                     
                     id += 1
                 except Exception as e:
