@@ -41,7 +41,7 @@ def _ranked_search(query: str, index_index, idf_index, id_map):
 
         # implement early stopping for low query term idf/low posting tf values
         for term_dict in sorted(terms, key=lambda x: x['idf'], reverse = True):
-            if term_dict['idf'] < 1:
+            if len(terms) > 5 and term_dict['idf'] < 1:
                 break
 
             index.seek(index_index[term_dict['term']])
